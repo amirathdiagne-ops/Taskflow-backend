@@ -16,13 +16,14 @@ const addProject = asyncHandler(async (req, res, next) => {
     if (!project) return next(new AppError('erreur lors de la creation du projet', 400))
     res.status(201).json({
         status: "success",
-        project: project
+        project: project 
     })
 
 })
 
 const getProjects = asyncHandler(async (req, res, next) => {
-    const allProjects = await Project.find({ owner: req.user._id })
+    const allProjects = await Project.find({ owner: req.user._id }).populate('owner', "name email")
+    console.log(allProjects)
     res.status(200).json({
         total: allProjects.length,
         projects: allProjects
@@ -65,7 +66,17 @@ const deleteProject = asyncHandler(async (req, res, next) => {
     })
 })
 
+const allUserProjects = asyncHandler(async (req, res, next) => {
+    const allProjects = await Project.find().populate('owner', "name email")
+
+    console.log(allProjects)
+    res.status(200).json({
+        total: allProjects.length,
+        projects : allProjects
+    })
+})
 
 
-module.exports = { addProject, getProjects, getProjectById, modifyProject, deleteProject }
+
+module.exports = { addProject, getProjects, getProjectById, modifyProject, deleteProject, allUserProjects}
 
