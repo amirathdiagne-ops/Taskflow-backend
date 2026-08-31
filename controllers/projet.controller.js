@@ -1,10 +1,9 @@
-const mongoose = require('mongoose')
 const Project = require('../models/projects.model')
 const asyncHandler = require('../utils/asyncHandler')
 const AppError = require('../utils/appError')
-
+const User = require('../models/users.model')
 const addProject = asyncHandler(async (req, res, next) => {
-    const { name, description, status, owner, members } = req.body
+    const { name, description, status } = req.body
 
     const project = await Project.create({
         name,
@@ -16,7 +15,7 @@ const addProject = asyncHandler(async (req, res, next) => {
     if (!project) return next(new AppError('erreur lors de la creation du projet', 400))
     res.status(201).json({
         status: "success",
-        project: project 
+        project: project
     })
 
 })
@@ -31,14 +30,14 @@ const getProjects = asyncHandler(async (req, res, next) => {
 })
 
 const getProjectById = asyncHandler(async (req, res, next) => {
-    const project = await Project.findByOne({ _id: req.params.id, owner: req.user._id })
-    if(!project) return next(new AppError('introuvable ou pas autoriser'))
+    const project = await Project.findOne({ _id: req.params.id, owner: req.user._id })
+    if (!project) return next(new AppError('introuvable ou pas autoriser', 404))
     res.status(200).json({
         project: project
     })
 })
 const modifyProject = asyncHandler(async (req, res, next) => {
-    const { name, description, status, members, owner } = req.body
+    const { name, description, status, members} = req.body
 
     const updates = {}
     if (name) updates.name = name
@@ -50,7 +49,7 @@ const modifyProject = asyncHandler(async (req, res, next) => {
         { $set: updates },
         { new: true, runValidators: true }
     )
-    if (!project) return next(new AppError('impossible de modifier ou pas autoriser a modifier'))
+    if (!project) return next(new AppError('impossible de modifier ou pas autoriser a modifier', 404))
     res.status(200).json({
         status: "success",
         project: project
@@ -58,7 +57,7 @@ const modifyProject = asyncHandler(async (req, res, next) => {
 })
 
 const deleteProject = asyncHandler(async (req, res, next) => {
-    const projectToDelete = await Project.findOneAndDelete({_id :req.params.id, owner : req.user._id})
+    const projectToDelete = await Project.findOneAndDelete({ _id: req.params.id, owner: req.user._id })
     if (!projectToDelete) return next(new AppError('introuvable ou non autorisé', 404))
     res.status(200).json({
         status: "success",
@@ -67,16 +66,31 @@ const deleteProject = asyncHandler(async (req, res, next) => {
 })
 
 const allUserProjects = asyncHandler(async (req, res, next) => {
-    const allProjects = await Project.find().populate('owner', "name email")
+    const allProjects = await Project.find({ _id: req.user._id }).populate('owner', "name email")
 
     console.log(allProjects)
     res.status(200).json({
         total: allProjects.length,
-        projects : allProjects
+        projects: allProjects
     })
+})
+
+const addMember = asyncHandler(async (req, res, next) => {
+    const { userId } = req.body
+    const { projectId } = req.params
+    const userToAdd = await User.findById(userId)
+    if (!userToAdd) return next(new AppError('candidat introuvable', 404))
+    const project = await Project.findOne({ _id: projectId, owner: req.user._id })
+    if (!project) return next(new AppError('project introuvable ou pas autoriser', 404))
+    const isAlreadyMember = project.members.some(member => member.toString() === userToAdd._id.toString())
+    if(isAlreadyMember)return next(new AppError(`${userToAdd.name} travaille déjà sur ce projet precis`, 409))
+    project.members = [...project.members, userToAdd._id]
+    await project.save()
+    res.status(200).json({ project })
+
 })
 
 
 
-module.exports = { addProject, getProjects, getProjectById, modifyProject, deleteProject, allUserProjects}
+module.exports = { addProject, getProjects, getProjectById, modifyProject, deleteProject, allUserProjects, addMember }
 

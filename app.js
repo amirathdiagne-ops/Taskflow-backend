@@ -5,7 +5,9 @@ const userRouter = require('./routes/user.route')
 const cookieParser = require('cookie-parser')
 const errorHandler = require('./middlewares/errorHandler.middleware')
 const projectRouter = require('./routes/project.route')
+const commentRouter = require('./routes/comment.route')
 const cors = require('cors')
+const taskRouter = require('./routes/tasks.route')
 require('dotenv').config()
 app.use(express.json())
 app.use(cors({
@@ -15,7 +17,9 @@ app.use(cors({
 app.use(cookieParser())
 app.use('/api/auth', userRouter)
 app.use('/api/project', projectRouter)
-
+app.use('/api/project', taskRouter)
+app.use('/api/tasks', taskRouter)
+app.use('/api/comments', commentRouter)
 app.use(errorHandler)
 
 connectDB()

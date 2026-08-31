@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken')
 const register = asyncHandler(async (req, res, next) => {
     const { name, email, password, avatar } = req.body
     const user = await User.create({
-        name, 
+        name,
         email,
         password,
         avatar
@@ -30,7 +30,7 @@ const register = asyncHandler(async (req, res, next) => {
 
 const login = asyncHandler(async (req, res, next) => {
     const { email, password } = req.body
-    const user = await User.findOne({ email }).select('+password' )
+    const user = await User.findOne({ email }).select('+password')
     if (!user) return next(new AppError('Email incorrecte ou veuillez créer un compte', 400))
     const isMatch = await user.comparePassword(password)
     if (!isMatch) return next(new AppError('mot de passe incorrecte', 401))
@@ -48,8 +48,8 @@ const login = asyncHandler(async (req, res, next) => {
         message: "Connexion reussie",
         accessToken: accessToken,
         user: {
-            email : user.email,
-            name : user.name
+            email: user.email,
+            name: user.name
         }
     })
 
@@ -64,7 +64,7 @@ const logout = asyncHandler(async (req, res, next) => {
             sameSite: "strict",
 
         })
-        res.status(200).json({
+        return res.status(200).json({
             status: "succès",
             message: "Deconnexion reussie"
         })
@@ -93,7 +93,7 @@ const refresh = asyncHandler(async (req, res, next) => {
     } catch (error) {
         return next(new AppError('refresh Token non valide ou expiré', 401))
     }
-    const user = await User.findById(decoded.id)
+    const user = await User.findOne({_id : decode.id, refreshToken : refreshToken})
     if (!user) return next(new AppError('token non reconnu ou revoqué', 404))
     const newAccessToken = generateToken(user._id, user.role)
     const newRefreshToken = generateRefreshToken(user._id)
@@ -118,5 +118,15 @@ const myProfile = asyncHandler(async (req, res, next) => {
     })
 })
 
+const showUsers = asyncHandler(async (req, res, next) => {
+    const users = await User.find().select('-refreshToken') 
+    const usersId = users.map(user => (user._id).toString())
+    console.log(usersId)
+    res.status(200).json({
+        status: "success",
+        users
+    })
+})
 
-module.exports = { register, login, logout, refresh, myProfile }
+
+module.exports = { register, login, logout, refresh, myProfile, showUsers }
