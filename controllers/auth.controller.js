@@ -93,7 +93,7 @@ const refresh = asyncHandler(async (req, res, next) => {
     } catch (error) {
         return next(new AppError('refresh Token non valide ou expiré', 401))
     }
-    const user = await User.findOne({_id : decode.id, refreshToken : refreshToken})
+    const user = await User.findOne({_id : decoded.id})
     if (!user) return next(new AppError('token non reconnu ou revoqué', 404))
     const newAccessToken = generateToken(user._id, user.role)
     const newRefreshToken = generateRefreshToken(user._id)
@@ -120,11 +120,9 @@ const myProfile = asyncHandler(async (req, res, next) => {
 
 const showUsers = asyncHandler(async (req, res, next) => {
     const users = await User.find().select('-refreshToken') 
-    const usersId = users.map(user => (user._id).toString())
-    console.log(usersId)
     res.status(200).json({
         status: "success",
-        users
+        users: users
     })
 })
 

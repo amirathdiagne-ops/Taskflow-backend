@@ -13,7 +13,7 @@ const protect = asyncHandler(async (req, res, next) => {
         return next(new AppError('token invalid', 401))
     }
     const user = await User.findById(decoded.id).select('-refreshToken -password')
-    if (!user) return next(new AppError('utilisateur introuvable', 404))
+    if (!user) return next(new AppError('utilisateur introuvable mtn', 404))
     req.user = user
     next()
 

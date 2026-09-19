@@ -22,7 +22,6 @@ const addProject = asyncHandler(async (req, res, next) => {
 
 const getProjects = asyncHandler(async (req, res, next) => {
     const allProjects = await Project.find({ owner: req.user._id }).populate('owner', "name email")
-    console.log(allProjects)
     res.status(200).json({
         total: allProjects.length,
         projects: allProjects
@@ -67,8 +66,6 @@ const deleteProject = asyncHandler(async (req, res, next) => {
 
 const allUserProjects = asyncHandler(async (req, res, next) => {
     const allProjects = await Project.find({ _id: req.user._id }).populate('owner', "name email")
-
-    console.log(allProjects)
     res.status(200).json({
         total: allProjects.length,
         projects: allProjects
@@ -90,7 +87,18 @@ const addMember = asyncHandler(async (req, res, next) => {
 
 })
 
+const getMembers = asyncHandler(async (req, res, next) => {
+    console.log("hello les membres")
+    const project = await Project.findById(req.params.id)
+    console.log(project, "whaouh")
+    if(!project) return next(new AppError('projet introuvable ou pas autoriser', 404))
+    console.log(project.members)
+    await project.populate("members", "name")
+    const member =  project.members.map(m => m)
+    res.status(200).json({members : member})
+})
 
 
-module.exports = { addProject, getProjects, getProjectById, modifyProject, deleteProject, allUserProjects, addMember }
+
+module.exports = { addProject, getProjects, getProjectById, modifyProject, deleteProject, allUserProjects, addMember, getMembers }
 

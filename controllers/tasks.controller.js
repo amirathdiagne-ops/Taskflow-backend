@@ -23,8 +23,8 @@ const addTask = asyncHandler(async (req, res, next) => {
 })
 
 const getTasks = asyncHandler(async (req, res, next) => {
-    const tasks = await Task.find({ project: req.project._id })
-    if (tasks.length === 0) return res.status(200).json({ message: "liste de taches vide" })
+    console.log("ca marche au calme")
+    const tasks = await Task.find({ project: req.project._id }).populate("project", "members")
     res.status(200).json({
         message: "success",
         tasks: tasks
@@ -49,10 +49,9 @@ const getTasksById = asyncHandler(async (req, res, next) => {
 
 const modifyTask = asyncHandler(async (req, res, next) => {
     const { title, description, assignedTo, status, priority, dueDate } = req.body
-    const { projectId } = req.params
     const task = await Task.findById(req.params.id).populate('project', 'owner')
     if (!task) return next(new AppError('tache introuvable', 404))
-    const project = await Project.findById(projectId)
+    const project = await Project.findById(task.project._id)
     if (!project) return next(new AppError('project introuvable', 404))
     const isCreator = req.user._id.equals(task.createdBy)
     const isOwner = req.user._id.equals(task.project.owner)
@@ -73,10 +72,9 @@ const modifyTask = asyncHandler(async (req, res, next) => {
 })
 
 const deleteTask = asyncHandler(async (req, res, next) => {
-    const task = await Task.findById(req.params.id).populate('project', "owner")
+    const task = await Task.findById(req.params.id).populate('project', "owner members")
     if (!task) return next(new AppError('tache introuvable', 404))
-    const project = await Project.findById(task.project._id)
-    if (!project) return next(new AppError('project introuvable', 404))
+    if (!task.project) return next(new AppError('project introuvable', 404))
     const isCreator = req.user._id.equals(task.createdBy)
     const isOwner = req.user._id.equals(task.project.owner)
     const isMember = project.members.some(member => member.equals(req.user._id))
@@ -90,19 +88,22 @@ const deleteTask = asyncHandler(async (req, res, next) => {
 })
 
 const assignedTask = asyncHandler(async (req, res, next) => {
-    const { userId } = req.body
+    const { userId } = req.body 
+    console.log(userId, "id du membre")
     const userExist = await User.findById(userId)
     if (!userExist) return next(new AppError('utilisateur introuvable', 404))
-    const task = await Task.findById(req.params.id).populate('project', "owner")
+    const task = await Task.findById(req.params.id).populate('project', "owner members")
     if (!task) return next(new AppError('tache introuvable', 404))
-    const project = await Project.findById(task.project)
-    if (!project) return next(new AppError('project introuvable', 404))
-    const isCreator = req.user._id.equals(task.createdBy)
+    console.log("tache trouvée", task)
+    if (!task.project) return next(new AppError('project introuvable', 404))
+    const isCreator = req.user._id.equals(task.createdBy) 
     const isOwner = req.user._id.equals(task.project.owner)
     const canAccess = isOwner || isCreator
     if (!canAccess) return next(new AppError('pas autorisé', 403))
-    const userIsMember = project.members.some(member => member.equals(userExist._id))
+    const userIsMember = task.project.members.some(member => member.equals(userExist._id))
     if (!userIsMember) return next(new AppError('cet utilisateur ne peut pas etre assigné au projet', 403))
+    const isAlreadyAssignedTo = task.assignedTo.equals(userExist._id)
+    if(isAlreadyAssignedTo) return next(new AppError("Déjà assigné a la tache ne peut plus etre assigné", 409))
     task.assignedTo = userExist._id
     await task.save()
     res.status(200).json({

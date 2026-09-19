@@ -9,7 +9,8 @@ taskRouter.get('/', protect, checkPermission, getTasks)
 taskRouter.get('/:id', protect, getTasksById)
 taskRouter.patch('/:id', protect, modifyTask)
 taskRouter.delete('/:id', protect, deleteTask)
+taskRouter.put('/:id/assigneTo', protect, assignedTask)
 taskRouter.post('/', protect, checkPermission, addTask)
-taskRouter.put('/:id/assigneTo',protect, assignedTask)
+
 
 module.exports = taskRouter

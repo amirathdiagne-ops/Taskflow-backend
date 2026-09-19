@@ -5,10 +5,9 @@ const Project = require('../models/projects.model')
 
 const checkCommentPermission = asyncHandler(async (req, res, next) => {
     const {taskId} = req.params
-    const {projectId} = req.params
     const task = await Task.findById(taskId).populate('project', "owner")
     if(!task) return next(new AppError('tache introuvable', 404))
-    const project = await Project.findById(projectId)
+    const project = await Project.findById(task.project._id)
     if(!project) return next(new AppError('projet introuvable', 404))
     const isProjectOwner = task.project.owner._id.equals(req.user._id)
     const isCreator = task.createdBy.equals(req.user._id)

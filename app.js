@@ -17,7 +17,6 @@ app.use(cors({
 app.use(cookieParser())
 app.use('/api/auth', userRouter)
 app.use('/api/project', projectRouter)
-app.use('/api/project', taskRouter)
 app.use('/api/tasks', taskRouter)
 app.use('/api/comments', commentRouter)
 app.use(errorHandler)
