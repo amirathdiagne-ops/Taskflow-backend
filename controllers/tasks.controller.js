@@ -24,7 +24,18 @@ const addTask = asyncHandler(async (req, res, next) => {
 
 const getTasks = asyncHandler(async (req, res, next) => {
     console.log("ca marche au calme")
-    const tasks = await Task.find({ project: req.project._id }).populate("project", "members")
+    const page = Number(req.query.page) || 1
+    const limit = Number(req.query.limit) || 3
+    const skip = (page - 1) * limit
+    const filter = { project: req.project._id }
+    const tasks = await Task.find(filter).skip(skip).limit(limit)
+        .populate("assignedTo", "name")
+        .populate({
+            path: "project", select: "name owner",
+            populate: {
+                path: "owner", select: "name"
+            }
+        })
     res.status(200).json({
         message: "success",
         tasks: tasks
@@ -77,7 +88,7 @@ const deleteTask = asyncHandler(async (req, res, next) => {
     if (!task.project) return next(new AppError('project introuvable', 404))
     const isCreator = req.user._id.equals(task.createdBy)
     const isOwner = req.user._id.equals(task.project.owner)
-    const isMember = project.members.some(member => member.equals(req.user._id))
+    const isMember = task.project.members.some(member => member.equals(req.user._id))
     const canAccess = isOwner || isCreator || isMember
     if (!canAccess) return next(new AppError('pas autorisé', 403))
     await task.deleteOne()
@@ -88,7 +99,7 @@ const deleteTask = asyncHandler(async (req, res, next) => {
 })
 
 const assignedTask = asyncHandler(async (req, res, next) => {
-    const { userId } = req.body 
+    const { userId } = req.body
     console.log(userId, "id du membre")
     const userExist = await User.findById(userId)
     if (!userExist) return next(new AppError('utilisateur introuvable', 404))
@@ -96,14 +107,16 @@ const assignedTask = asyncHandler(async (req, res, next) => {
     if (!task) return next(new AppError('tache introuvable', 404))
     console.log("tache trouvée", task)
     if (!task.project) return next(new AppError('project introuvable', 404))
-    const isCreator = req.user._id.equals(task.createdBy) 
+    const isCreator = req.user._id.equals(task.createdBy)
     const isOwner = req.user._id.equals(task.project.owner)
     const canAccess = isOwner || isCreator
     if (!canAccess) return next(new AppError('pas autorisé', 403))
     const userIsMember = task.project.members.some(member => member.equals(userExist._id))
     if (!userIsMember) return next(new AppError('cet utilisateur ne peut pas etre assigné au projet', 403))
-    const isAlreadyAssignedTo = task.assignedTo.equals(userExist._id)
-    if(isAlreadyAssignedTo) return next(new AppError("Déjà assigné a la tache ne peut plus etre assigné", 409))
+    const isAlreadyAssignedTo = task.assignedTo?.equals(userExist._id)
+    if (isAlreadyAssignedTo) {
+        return next(new AppError("Déjà assigné a la tache ne peut plus etre assigné", 409))
+    }
     task.assignedTo = userExist._id
     await task.save()
     res.status(200).json({
@@ -112,5 +125,15 @@ const assignedTask = asyncHandler(async (req, res, next) => {
     })
 })
 
+const getAssignedTasks = asyncHandler(async (req, res, next) => {
+    const tasks = await Task.find({ assignedTo: req.user._id })
+    console.log(tasks)
+    if (!tasks) return next(new AppError('tâches introuvables'))
+    res.status(200).json({
+        status: "success",
+        tasks
+    })
+})
 
-module.exports = { addTask, getTasks, getTasksById, modifyTask, deleteTask, assignedTask }
+
+module.exports = { addTask, getTasks, getTasksById, modifyTask, deleteTask, assignedTask, getAssignedTasks }

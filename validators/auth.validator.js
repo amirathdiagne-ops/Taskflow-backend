@@ -23,7 +23,7 @@ const loginSchema = Joi.object({
     email: Joi.string().email().required()
         .messages({
             'string.email': "Entrer un address email valide pour vous connecter ",
-            'any-required': "l\'email est requis pour se connecter"
+            'any.required': "l\'email est requis pour se connecter"
         }),
     password: Joi.string().required()
         .messages({
